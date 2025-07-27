@@ -101,10 +101,59 @@ elif selected_page == "📈 Order of Growth":
 elif selected_page == "🧮 Asymptotic Analysis":
     st.header("Understanding Asymptotic Analysis")
     st.markdown("Analyze how an algorithm behaves as the input size grows towards infinity.")
-    expr = st.text_input("Enter an expression in terms of n", "3*n**2 + 2*n + 1")
-    st.latex(rf"f(n) = {expr}")
-    st.code("Asymptotic Complexity: O(n²)")
-    st.info("Only the dominant term matters as n → ∞. Ignore constants and lower-order terms.")
+
+    import sympy as sp
+    n = sp.Symbol('n')
+    expr_input = st.text_input("Enter an expression in terms of n", "3*n**2 + 2*n + 1")
+
+    try:
+        expr = sp.sympify(expr_input)
+        expr = sp.expand(expr)  # ensure it's fully expanded
+
+        st.latex(rf"f(n) = {sp.latex(expr)}")
+
+        # Get the dominant term
+        terms = expr.as_ordered_terms(order='grevlex')  # reverse lex to get highest degree last
+        dominant_term = terms[-1] if terms else expr
+        degree = sp.degree(dominant_term, n)
+
+        # Determine Big-O notation
+        if degree == 0:
+            complexity = "O(1)"
+        elif degree == 1:
+            complexity = "O(n)"
+        elif degree == 2:
+            complexity = "O(n²)"
+        elif degree == 3:
+            complexity = "O(n³)"
+        else:
+            complexity = f"O(n^{degree})"
+
+        st.code(f"Asymptotic Complexity: {complexity}")
+        st.info("Only the dominant term matters as n → ∞. Ignore constants and lower-order terms.")
+
+        # Optional plot
+        show_plot = st.checkbox("Show growth comparison with standard complexities")
+        if show_plot:
+            import numpy as np
+            import plotly.graph_objects as go
+
+            x_vals = np.linspace(1, 100, 200)
+            f_lambdified = sp.lambdify(n, expr, "numpy")
+            y_vals = f_lambdified(x_vals)
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=x_vals, y=y_vals, name=f"f(n) = {expr_input}", line=dict(color="black")))
+            fig.add_trace(go.Scatter(x=x_vals, y=x_vals, name="O(n)", line=dict(dash="dot")))
+            fig.add_trace(go.Scatter(x=x_vals, y=x_vals**2, name="O(n²)", line=dict(dash="dot")))
+            fig.add_trace(go.Scatter(x=x_vals, y=x_vals**3, name="O(n³)", line=dict(dash="dot")))
+
+            fig.update_layout(title="Growth of f(n) vs Standard Complexities", xaxis_title="n", yaxis_title="f(n)", height=500)
+            st.plotly_chart(fig, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"Invalid expression: {e}")
+
 
 elif selected_page == "📊 Algorithm Cases":
     st.header("Best, Average and Worst Cases")
